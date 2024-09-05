@@ -1,13 +1,12 @@
 const inquirer = require('inquirer');
-const queries = require('./queries');
+const {query} = require('./queries');
 
-const start = async () => {
-    const answers = await inquirer.prompt({
-
-        loop: false,
+async function start() {
+    const answers = await inquirer.prompt([
+{
         type: 'list',
         name: 'action',
-        message: 'What is nexted?',
+        message: 'What is next?',
         
         choices: [
             'All Departments',
@@ -18,138 +17,103 @@ const start = async () => {
             'Add Employee',
             'Update Employee Role',
             'Exit',
-        ],
-});
+        ]
+          }
+]);
 
 switch (answers.action){
-    case 'View All Departments':
-      const departments = await queries.viewDepartments();
-      start();
+    case 'All Departments':
+      const departments = await query('SELECT * FROM department');
+      console.table(departments.rows);
       break;
 
-    case 'View All Roles':
-      const roles = await queries.viewRoles();
-      start();
+    case 'All Roles':
+      const roles = await query('SELECT * FROM role');
+      console.table(roles.rows);
       break;
 
-    case 'View All Employees':
-      const employees = await queries.viewEmployees();
-      start();
+    case 'All Employees':
+      const employees = await query('SELECT * FROM employees');
+      console.table(employees.rows);
       break;
 
     case 'Add Department':
-      const { departmentName } = await inquirer.prompt({
-        type: 'input',
-        name: 'departmentName',
-        message: 'Enter name of the department you would like to add',
-      });
-      await queries.addDepartment(departmentName);
-      console.log('Department has been added');
-      start();
+      await addDepartment();
       break;
 
-    case 'Add a role':
-      const departmentArr = await queries.viewDepartments()
-  
-      const departmentChoices = departmentArr.map(dept => {
-        return { 
-          name: dept.name,
-          value: dept.id
-        }
-      })
-      console.log("Choices: ", departmentChoices)
-
-      const { roleTitle, roleSalary, departmentId } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'roleTitle',
-          message: 'Enter the role title',
-        },
-        {
-          type: 'input',
-          name: 'roleSalary',
-          message: 'Enter the salary',
-        },
-       
-        {
-          type: 'list',
-          name: 'departmentId',
-          message: 'Enter department ID for this role',
-          choices: departmentChoices
-        },
-      ]);
-      await queries.addRole(roleTitle, roleSalary, departmentId);
-      console.log('Role has been added');
-      start();
+    case 'Add Role':
+      await addRole();
       break;
 
-    case 'Add an employee':
-      try {
-        let { firstName, lastName, roleId, managerId } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'firstName',
-            message: 'Enter the employee first name:',
-          },
-          {
-            type: 'input',
-            name: 'lastName',
-            message: 'Enter the employee last name:',
-          },
-          {
-            type: 'input',
-            name: 'roleId',
-            message: 'Enter the role ID for the employee:',
-          },
-          {
-            type: 'input',
-            name: 'managerId',
-            message: 'Enter the manager ID (if applicable):',
-         
-          },
-        ]);
-       
-       if(managerId == 'null' || managerId == 0 || managerId == 'NULL' || managerId == 'Null') {
-          managerId = null;
-        }
-        await queries.addEmployee(firstName, lastName, roleId, managerId);
-        console.log('Employee added.');
-        start();
+    case 'Add Employee':
+      await addEmployee();
         break;
-        
-      } catch (error) {
-        console.log("Err: ", error);
-      }
 
-    case 'Update an employee role':
-      const { employeeId, newRoleId } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'employeeId',
-          message: 'Enter the employee ID being updated',
-        },
-        {
-          type: 'input',
-          name: 'newRoleId',
-          message: 'Enter the updated role ID',
-        },
-      ]);
-      await queries.updateRole(employeeId, newRoleId);
-      console.log('New employee role updated.');
-      start();
+    case 'Update Employee Role':
+     await updateEmployee();
       break;
      
-      case 'Quit': quit(); break;
+      case 'Exit': 
+      process.exit(0);
 
     default:
-     quit()
+      console.log('');
+      console.log('Failed');
+      console.log(''); 
+     break;
   }
   
 
- 
+  await start();
 };
- start();
 
-  function quit() {
-    process.exit();
-  }
+start();
+
+// Josh Stringer helped with this part of adding new areas and insert values to them
+
+async function addDepartment() {
+  const answer = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'newDepartmentName',
+      message: 'Enter new department:'
+    }
+  ]);
+  await query('INSERT INTO department (name) VALUES ($1)', [answer.newDepartmentName]);
+  console.log('Department Added');
+}
+
+async function updateEmployee() {
+
+  const existingEmployee = await query('SELECT * FROM employee');
+
+  const employeeChoice = existingEmployee.rows.map(emp => ({
+    name: `${emp.first_name} ${emp.last_name}`,
+    value: emp.id
+  }));
+
+  const existingRoles = await query('SELECT * FROM role');
+
+  const employeeRoleChoice = existingRoles.rows.map(role => ({
+    name: role.title,
+    value: role.id
+  }));
+
+  const answer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'employeeName',
+      message: 'Choose employee:',
+      choices: employeeChoice
+    },
+    {
+      type: 'list',
+      name: 'employeeRole',
+      message: 'Choose new role:',
+      choices: employeeRoleChoice
+    }
+  ]);
+
+  await query('UPDATE employee SET role_id = $2 WHERE id = $1', [answer.employeeName, answer.employeeRole]);
+  console.log('Employee Role Updated');
+}

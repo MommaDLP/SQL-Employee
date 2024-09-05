@@ -15,3 +15,9 @@ Next run 'node index.js' to start the app
 -'Add Employee',
 -'Update Employee Role',
 -'Exit'
+
+## Walkthrugh Video
+
+
+## GitHub Repo Page
+[My GitHub] (https://github.com/MommaDLP/SQL-Employee)
