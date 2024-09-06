@@ -33,7 +33,7 @@ switch (answers.action){
       break;
 
     case 'All Employees':
-      const employees = await query('SELECT * FROM employees');
+      const employees = await query('SELECT * FROM employee');
       console.table(employees.rows);
       break;
 
@@ -82,6 +82,67 @@ async function addDepartment() {
   await query('INSERT INTO department (name) VALUES ($1)', [answer.newDepartmentName]);
   console.log('Department Added');
 }
+
+async function addRole() {
+  const existingDept = await query('SELECT * FROM department');
+  const deptChoice = existingDept.rows.map(dept => ({
+      name: dept.name,
+      value: dept.id
+  }));
+
+  const answer = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'newTitleName',
+      message: 'Enter new title:'
+    },
+    {
+      type: 'input',
+      name: 'newSalary',
+      message: 'Enter new salary:'
+    },
+    {
+      type: 'list',
+      name: 'whatDepart',
+      message: 'Department of new role:',
+      choices: deptChoice
+    }
+  ]);
+ 
+  await query('INSERT INTO role (title, salary, department_id) VALUES ($1, $2, $3)', [answer.newTitleName, answer.newSalary, answer.whatDepart]);
+  console.log('Role Added');
+}
+
+async function addEmployee() {
+  const existingRole = await query('SELECT * FROM role');
+  const roleChoice = existingRole.rows.map(role => ({
+      name: role.title,
+      value: role.id
+  }));
+
+  const answer = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'employeeFirstName',
+      message: 'Enter first name:'
+    },
+    {
+      type: 'input',
+      name: 'employeeLastName',
+      message: 'Enter last name:'
+    },
+    {
+      type: 'list',
+      name: 'whatRole',
+      message: 'Employee role:',
+      choices: roleChoice
+    }
+  ]);
+ 
+  await query('INSERT INTO employee (first_name, last_name, role_id) VALUES ($1, $2, $3)', [answer.employeeFirstName, answer.employeeLastName, answer.whatRole]);
+  console.log('Employee Added');
+}
+
 
 async function updateEmployee() {
 
